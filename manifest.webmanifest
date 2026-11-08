@@ -1,0 +1,19 @@
+{
+  "name": "Sổ Xố Bỏ Túi",
+  "short_name": "Sổ Xố",
+  "description": "App dò vé số cá nhân nhanh gọn, offline, miễn phí",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

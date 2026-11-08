@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#dc2626">
+  <meta name="description" content="Sổ Xố Bỏ Túi — Ứng dụng PWA dò vé số cá nhân nhanh gọn, offline, miễn phí">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Sổ Xố Bỏ Túi</title>
+
+  <!-- Pinned Tesseract.js for OCR from jsdelivr CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #131c2e;
+      --card-border: #1e293b;
+      --card-hover: #1e2942;
+      --primary: #e11d48;
+      --primary-hover: #be123c;
+      --primary-glow: rgba(225, 29, 72, 0.25);
+      --gold: #f59e0b;
+      --gold-light: #fef3c7;
+      --green: #10b981;
+      --green-light: #d1fae5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, #1e1b4b 0%, var(--bg) 100%);
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 0.72rem;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .header-info-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 16px;
+      padding-bottom: calc(84px + var(--safe-bottom));
+      max-width: 680px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Tabs Content */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Bottom Tab Navigation Bar */
+    nav.tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 12px calc(8px + var(--safe-bottom));
+      z-index: 50;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+      flex: 1;
+    }
+
+    .tab-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+      transition: transform 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+    }
+
+    .tab-btn.active svg {
+      transform: translateY(-2px);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+
+    /* Segment Control (Region Switch) */
+    .segment-control {
+      display: flex;
+      background: #0b111e;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
+      margin-bottom: 16px;
+      gap: 4px;
+    }
+
+    .segment-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .segment-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      background: #090e18;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+    }
+
+    /* Big Ticket Number Input Box */
+    .ticket-input-container {
+      margin-bottom: 16px;
+    }
+
+    .ticket-input {
+      width: 100%;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 12px;
+      text-align: center;
+      background: #080c14;
+      border: 2px solid var(--card-border);
+      border-radius: var(--radius);
+      color: var(--gold);
+      padding: 14px 8px;
+      outline: none;
+      font-family: monospace, -apple-system, sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .ticket-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+    }
+
+    .ticket-hint {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: #334155;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    /* Result Box */
+    .result-box {
+      margin-top: 16px;
+      border-radius: var(--radius);
+      padding: 20px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .result-box.won {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.05) 100%);
+      border: 1px solid #10b981;
+    }
+
+    .result-box.lost {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--card-border);
+    }
+
+    .result-box.waiting {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--gold);
+    }
+
+    .result-headline {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-box.won .result-headline {
+      color: #10b981;
+    }
+
+    .result-box.lost .result-headline {
+      color: var(--text-muted);
+    }
+
+    .result-amount {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--gold);
+      margin: 10px 0 16px;
+    }
+
+    .prize-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid var(--gold);
+      color: var(--gold-light);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    /* Quét Vé (Camera Scan) */
+    .scan-upload-area {
+      border: 2px dashed var(--card-border);
+      border-radius: var(--radius);
+      padding: 28px 16px;
+      text-align: center;
+      background: #090e18;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .scan-upload-area:hover {
+      border-color: var(--primary);
+      background: #111827;
+    }
+
+    .scan-icon {
+      width: 48px;
+      height: 48px;
+      fill: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .scan-image-preview {
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+      margin-top: 14px;
+      display: none;
+      border: 1px solid var(--card-border);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0 6px;
+      display: none;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--gold));
+      transition: width 0.2s;
+    }
+
+    .ocr-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Ví Vé (Wallet) */
+    .wallet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .ticket-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ticket-item {
+      background: #0b111e;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+
+    .ticket-item.is-won {
+      border-color: #10b981;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, #0b111e 100%);
+    }
+
+    .ticket-item-num {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 2px;
+      font-family: monospace;
+    }
+
+    .ticket-item-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-align: right;
+    }
+
+    .status-badge.won {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-badge.lost {
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--text-muted);
+    }
+
+    .status-badge.waiting {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--gold);
+    }
+
+    .ticket-del-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 6px;
+      margin-left: 8px;
+    }
+
+    .ticket-del-btn:hover {
+      color: var(--danger);
+    }
+
+    /* Results Table */
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .results-table th, .results-table td {
+      border: 1px solid var(--card-border);
+      padding: 10px 12px;
+      font-size: 0.88rem;
+    }
+
+    .results-table th {
+      background: #090e18;
+      color: var(--text-muted);
+      font-weight: 600;
+      width: 25%;
+      text-align: center;
+    }
+
+    .results-table td {
+      background: #0e1626;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .results-table tr.db-row td {
+      color: var(--primary);
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+    }
+
+    .results-table tr.g1-row td {
+      color: var(--gold);
+      font-size: 1.05rem;
+    }
+
+    /* Lô tô Table */
+    .lotto-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .lotto-col {
+      background: #090e18;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .lotto-header {
+      background: #1e293b;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--gold);
+    }
+
+    .lotto-row {
+      display: flex;
+      border-bottom: 1px solid var(--card-border);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
+    .lotto-digit {
+      width: 28px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .lotto-values {
+      flex: 1;
+      font-weight: 600;
+      color: #e2e8f0;
+      word-break: break-all;
+    }
+
+    /* Modal Sheet */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-top: 1px solid var(--card-border);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px calc(24px + var(--safe-bottom));
+      width: 100%;
+      max-width: 680px;
+      max-height: 85vh;
+      overflow-y: auto;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Info modal content */
+    .info-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .info-list li strong {
+      color: #fff;
+    }
+
+    .badge-v1 {
+      background: rgba(225, 29, 72, 0.2);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--primary);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification -->
+  <div class="toast" id="appToast"></div>
+
+  <!-- Top App Header -->
+  <header>
+    <div class="brand">
+      <img src="icon.svg" alt="Sổ Xố Bỏ Túi">
+      <div>
+        <h1>Sổ Xố Bỏ Túi</h1>
+        <div class="brand-sub">Dò vé số cá nhân · Miễn phí</div>
+      </div>
+    </div>
+    <button class="header-info-btn" id="openInfoBtn" title="Thông tin ứng dụng">?</button>
+  </header>
+
+  <!-- Main Content Areas -->
+  <main>
+    <!-- TAB 1: DÒ SỐ (MANUAL CHECK) -->
+    <section id="tab-check" class="tab-pane active">
+      <div class="card">
+        <div class="segment-control">
+          <button class="segment-btn active" data-region="mn" id="btnRegionMN">Miền Nam</button>
+          <button class="segment-btn" data-region="mt" id="btnRegionMT">Miền Trung</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label" for="manualDate">Ngày mở thưởng</label>
+            <input type="date" id="manualDate" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="manualStation">Đài (Tỉnh/TP)</label>
+            <select id="manualStation" class="form-select"></select>
+          </div>
+        </div>
+
+        <div class="form-group ticket-input-container">
+          <label class="form-label" style="text-align: center;">Dãy 6 số trên vé</label>
+          <input type="tel" id="manualTicket" class="ticket-input" maxlength="6" placeholder="000000" inputmode="numeric">
+          <div class="ticket-hint">Nhập đủ 6 chữ số dự thưởng</div>
+        </div>
+
+        <button class="btn btn-primary" id="btnManualCheck">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+          DÒ KẾT QUẢ NGAY
+        </button>
+
+        <!-- Result Container -->
+        <div id="checkResultContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: QUÉT VÉ (CAMERA OCR) -->
+    <section id="tab-scan" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3Z"/></svg>
+          Chụp hoặc Chọn ảnh vé số
+        </div>
+
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+        <div class="scan-upload-area" id="scanArea">
+          <svg class="scan-icon" viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3Z"/></svg>
+          <div style="font-weight: 700; margin-bottom: 4px;">Nhấn để Chụp ảnh hoặc Tải ảnh vé</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Hỗ trợ vé số Miền Nam & Miền Trung</div>
+        </div>
+
+        <img id="scanPreview" class="scan-image-preview" alt="Ảnh vé đã chọn">
+
+        <div class="progress-bar-container" id="ocrProgressContainer">
+          <div class="progress-bar" id="ocrProgressBar"></div>
+        </div>
+        <div class="ocr-status" id="ocrStatus"></div>
+
+        <!-- Form xác nhận cho sửa tay trước khi dò (Prompt requirement) -->
+        <div id="scanConfirmForm" style="display: none; margin-top: 18px; border-top: 1px solid var(--card-border); padding-top: 16px;">
+          <div style="font-weight: 700; margin-bottom: 12px; color: var(--gold); font-size: 0.9rem;">
+            🔍 Xác nhận & chỉnh sửa trước khi dò
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="scanTicketNumber">Dãy 6 số nhận diện được</label>
+            <input type="tel" id="scanTicketNumber" class="ticket-input" maxlength="6" style="font-size: 1.8rem;">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label" for="scanStation">Đài phát hành</label>
+              <select id="scanStation" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="scanDate">Ngày mở thưởng</label>
+              <input type="date" id="scanDate" class="form-input">
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btnScanCheck">Dò vé này</button>
+            <button class="btn btn-secondary" id="btnScanSaveWallet">Lưu vào ví</button>
+          </div>
+        </div>
+
+        <div id="scanResultContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: VÍ VÉ (TICKET WALLET) -->
+    <section id="tab-wallet" class="tab-pane">
+      <div class="card">
+        <div class="wallet-header">
+          <div>
+            <div class="card-title" style="margin-bottom: 2px;">Ví vé số của bạn</div>
+            <div id="walletSummary" style="font-size: 0.78rem; color: var(--text-muted);">Tự động dò lại mỗi khi mở app</div>
+          </div>
+          <button class="btn btn-secondary" id="btnManualAddWallet" style="width: auto; padding: 6px 12px; font-size: 0.8rem;">
+            + Thêm vé
+          </button>
+        </div>
+
+        <div id="walletTicketList" class="ticket-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: KẾT QUẢ (FULL RESULTS & LÔ TÔ) -->
+    <section id="tab-results" class="tab-pane">
+      <div class="card">
+        <div class="segment-control">
+          <button class="segment-btn active" data-res-region="mn" id="btnResMN">Miền Nam</button>
+          <button class="segment-btn" data-res-region="mt" id="btnResMT">Miền Trung</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="resDate">Chọn ngày</label>
+            <select id="resDate" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="resStation">Chọn đài</label>
+            <select id="resStation" class="form-select"></select>
+          </div>
+        </div>
+
+        <div id="resultsTableContainer">
+          <!-- Dynamically populated results table -->
+        </div>
+
+        <!-- Lô tô Đầu / Đuôi Container -->
+        <div id="lottoContainer">
+          <!-- Dynamically populated lotto table -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-check">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2Z"/></svg>
+      <span>Dò số</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-scan">
+      <svg viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3Z"/></svg>
+      <span>Quét vé</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-wallet">
+      <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9m-9-2h10V8H12v8m4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5Z"/></svg>
+      <span>Ví vé</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-results">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9Z"/></svg>
+      <span>Kết quả</span>
+    </button>
+  </nav>
+
+  <!-- Info Modal -->
+  <div class="modal-overlay" id="infoModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="font-weight: 800; font-size: 1.1rem; color: #fff;">Về Sổ Xố Bỏ Túi</div>
+        <button class="modal-close" id="closeInfoBtn">&times;</button>
+      </div>
+      <ul class="info-list">
+        <li>✨ <strong>Mục đích:</strong> Dò vé số cá nhân nhanh, nhẹ, không quảng cáo, hoạt động offline.</li>
+        <li>🎯 <strong>Phạm vi v1:</strong> Hỗ trợ đầy đủ 21 đài Miền Nam & 14 đài Miền Trung theo luật xổ số chuẩn Bộ Tài chính.</li>
+        <li>📷 <strong>OCR quét vé:</strong> Sử dụng Tesseract nhận dạng trực tiếp trên trình duyệt, có form xác nhận sửa tay trước khi dò.</li>
+        <li>💾 <strong>Quyền riêng tư:</strong> Toàn bộ vé lưu trữ trong máy của bạn (localStorage), không gửi vé lên bất kỳ máy chủ nào.</li>
+        <li>⚡ <strong>Cập nhật kết quả:</strong> Tự động cào kết quả từ nguồn RSS chính thống mỗi chiều (16:45–18:45 VN).</li>
+        <li>📌 <strong>Chưa hỗ trợ v1:</strong> Miền Bắc (cơ cấu 5 số + ký hiệu đặc biệt); Push notification nền; Camera realtime (dùng chụp ảnh gốc để chữ nét nhất).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Main Application Logic (Vanilla JS Module) -->
+  <script type="module">
+    import {
+      matchTicket,
+      parseTicketText,
+      calculateLotto,
+      SCHEDULE,
+      ALL_STATIONS,
+      getRegionForStation,
+      getStationsForDate,
+      PRIZE
+    } from './lib.js';
+
+    // Global App State
+    let LOTTERY_DATA = {};
+    let currentCheckRegion = 'mn';
+    let currentResRegion = 'mn';
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.warn('SW registration failed:', err);
+        });
+      });
+    }
+
+    // Helper: Toast notification
+    function showToast(message) {
+      const toast = document.getElementById('appToast');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2600);
+    }
+    window.showToast = showToast;
+
+    // Helper: Format Currency (VND)
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+    }
+
+    // Helper: Local Storage for Tickets
+    const STORAGE_KEY = 'so_xo_bo_tui_tickets';
+    function getStoredTickets() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('Error reading localStorage:', e);
+        return [];
+      }
+    }
+
+    function saveStoredTickets(tickets) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+      } catch (e) {
+        console.error('Error writing localStorage:', e);
+      }
+    }
+
+    // Fetch Results Data (Network-First via SW)
+    async function loadResultsData() {
+      try {
+        const resp = await fetch('./data/results.json');
+        if (resp.ok) {
+          LOTTERY_DATA = await resp.json();
+          window.LOTTERY_DATA = LOTTERY_DATA;
+        }
+      } catch (e) {
+        console.warn('Error fetching results.json, relying on cache/offline data:', e);
+      }
+      onDataLoaded();
+    }
+
+    function onDataLoaded() {
+      initManualCheckTab();
+      initResultsTab();
+      renderWalletTab();
+    }
+
+    // Tab Navigation
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-tab');
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanes.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const targetPane = document.getElementById(targetId);
+        if (targetPane) targetPane.classList.add('active');
+
+        if (targetId === 'tab-wallet') {
+          renderWalletTab();
+        }
+      });
+    });
+
+    // Info Modal
+    const infoModal = document.getElementById('infoModal');
+    document.getElementById('openInfoBtn').addEventListener('click', () => infoModal.style.display = 'flex');
+    document.getElementById('closeInfoBtn').addEventListener('click', () => infoModal.style.display = 'none');
+    infoModal.addEventListener('click', (e) => {
+      if (e.target === infoModal) infoModal.style.display = 'none';
+    });
+
+    // ==========================================
+    // TAB 1: DÒ SỐ (MANUAL CHECK)
+    // ==========================================
+    const manualDateInput = document.getElementById('manualDate');
+    const manualStationSelect = document.getElementById('manualStation');
+    const manualTicketInput = document.getElementById('manualTicket');
+    const btnManualCheck = document.getElementById('btnManualCheck');
+    const checkResultContainer = document.getElementById('checkResultContainer');
+
+    function initManualCheckTab() {
+      // Set default date: newest date with data, or today
+      const availableDates = Object.keys(LOTTERY_DATA);
+      const latestDate = availableDates.length > 0 ? availableDates[0] : new Date().toISOString().split('T')[0];
+      manualDateInput.value = latestDate;
+      updateManualStations();
+    }
+
+    function updateManualStations() {
+      const dateVal = manualDateInput.value;
+      const dayStations = getStationsForDate(dateVal, currentCheckRegion);
+      const allRegStations = ALL_STATIONS[currentCheckRegion];
+
+      manualStationSelect.innerHTML = '';
+      
+      // First add stations scheduled for that day
+      const optGroupScheduled = document.createElement('optgroup');
+      optGroupScheduled.label = 'Đài quay ngày này (Ưu tiên)';
+      dayStations.forEach(st => {
+        const opt = document.createElement('option');
+        opt.value = st;
+        opt.textContent = st;
+        optGroupScheduled.appendChild(opt);
+      });
+      manualStationSelect.appendChild(optGroupScheduled);
+
+      // Then add other stations in region as fallback
+      const otherStations = allRegStations.filter(s => !dayStations.includes(s));
+      if (otherStations.length > 0) {
+        const optGroupOthers = document.createElement('optgroup');
+        optGroupOthers.label = 'Các đài khác';
+        otherStations.forEach(st => {
+          const opt = document.createElement('option');
+          opt.value = st;
+          opt.textContent = st;
+          optGroupOthers.appendChild(opt);
+        });
+        manualStationSelect.appendChild(optGroupOthers);
+      }
+    }
+
+    document.getElementById('btnRegionMN').addEventListener('click', (e) => {
+      currentCheckRegion = 'mn';
+      document.getElementById('btnRegionMN').classList.add('active');
+      document.getElementById('btnRegionMT').classList.remove('active');
+      updateManualStations();
+    });
+
+    document.getElementById('btnRegionMT').addEventListener('click', (e) => {
+      currentCheckRegion = 'mt';
+      document.getElementById('btnRegionMT').classList.add('active');
+      document.getElementById('btnRegionMN').classList.remove('active');
+      updateManualStations();
+    });
+
+    manualDateInput.addEventListener('change', updateManualStations);
+
+    btnManualCheck.addEventListener('click', () => {
+      const ticket = manualTicketInput.value.trim();
+      const date = manualDateInput.value;
+      const station = manualStationSelect.value;
+      const region = currentCheckRegion;
+
+      if (!/^\d{6}$/.test(ticket)) {
+        showToast('Vui lòng nhập chính xác 6 chữ số trên vé!');
+        manualTicketInput.focus();
+        return;
+      }
+
+      performCheckTicket(ticket, date, station, region, checkResultContainer);
+    });
+
+    function performCheckTicket(ticket, date, station, region, container) {
+      container.innerHTML = '';
+
+      const dayData = LOTTERY_DATA[date];
+      const stationResult = dayData?.[region]?.[station];
+
+      if (!dayData || !stationResult) {
+        container.innerHTML = `
+          <div class="result-box waiting">
+            <div class="result-headline" style="color: var(--gold);">
+              ⏳ Chưa có kết quả cho đài này
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+              Hệ thống chưa ghi nhận kết quả quay thưởng đài <strong>${station}</strong> ngày <strong>${date}</strong>.
+            </p>
+            <button class="btn btn-secondary" onclick="window.saveTicketToWallet('${ticket}', '${station}', '${date}', '${region}')">
+              💾 Lưu vào ví để tự động dò khi có KQ
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const prizes = matchTicket(ticket, stationResult);
+      if (prizes.length > 0) {
+        const totalWon = prizes.reduce((sum, p) => sum + p.amount, 0);
+        let badgesHtml = prizes.map(p => `
+          <span class="prize-badge">🎉 ${p.name}: ${formatCurrency(p.amount)}</span>
+        `).join('');
+
+        container.innerHTML = `
+          <div class="result-box won">
+            <div class="result-headline">
+              🎉 CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG!
+            </div>
+            <div class="result-amount">${formatCurrency(totalWon)}</div>
+            <div style="margin-bottom: 14px;">${badgesHtml}</div>
+            <p style="font-size: 0.8rem; color: #a7f3d0; margin-bottom: 14px;">
+              Vé: <strong>${ticket}</strong> · Đài: <strong>${station}</strong> · Ngày: ${date}
+            </p>
+            <button class="btn btn-success" onclick="window.saveTicketToWallet('${ticket}', '${station}', '${date}', '${region}')">
+              💾 Lưu vé này vào ví
+            </button>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="result-box lost">
+            <div class="result-headline">
+              Rất tiếc, vé chưa trúng thưởng
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 6px 0 12px;">
+              Vé số <strong>${ticket}</strong> (${station}, ngày ${date}) không trùng giải nào.
+            </p>
+            <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 12px;">
+              <span style="color: var(--text-muted);">Giải Đặc Biệt hôm đó:</span> <strong style="color: var(--primary); font-size: 1rem; letter-spacing: 2px;">${stationResult.db}</strong>
+            </div>
+            <button class="btn btn-outline" onclick="window.saveTicketToWallet('${ticket}', '${station}', '${date}', '${region}')">
+              Lưu vé vào ví để theo dõi
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    // Expose saveTicketToWallet for inline HTML onclick
+    window.saveTicketToWallet = (ticket, station, date, region) => {
+      const tickets = getStoredTickets();
+      // Check duplicate
+      const exists = tickets.some(t => t.so === ticket && t.dai === station && t.ngay === date);
+      if (exists) {
+        showToast('Vé này đã có trong ví của bạn!');
+        return;
+      }
+      tickets.unshift({
+        id: Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+        so: ticket,
+        dai: station,
+        ngay: date,
+        vung: region,
+        createdAt: new Date().toISOString()
+      });
+      saveStoredTickets(tickets);
+      showToast('Đã lưu vé vào ví thành công!');
+      renderWalletTab();
+    };
+
+    // ==========================================
+    // TAB 2: QUÉT VÉ (CAMERA OCR SCAN)
+    // ==========================================
+    const scanArea = document.getElementById('scanArea');
+    const cameraInput = document.getElementById('cameraInput');
+    const fileInput = document.getElementById('fileInput');
+    const scanPreview = document.getElementById('scanPreview');
+    const ocrProgressContainer = document.getElementById('ocrProgressContainer');
+    const ocrProgressBar = document.getElementById('ocrProgressBar');
+    const ocrStatus = document.getElementById('ocrStatus');
+    const scanConfirmForm = document.getElementById('scanConfirmForm');
+    const scanTicketNumber = document.getElementById('scanTicketNumber');
+    const scanStationSelect = document.getElementById('scanStation');
+    const scanDateInput = document.getElementById('scanDate');
+    const btnScanCheck = document.getElementById('btnScanCheck');
+    const btnScanSaveWallet = document.getElementById('btnScanSaveWallet');
+    const scanResultContainer = document.getElementById('scanResultContainer');
+
+    // Populate all stations in scanStationSelect
+    function populateScanStations() {
+      scanStationSelect.innerHTML = '';
+      const allStations = [...ALL_STATIONS.mn, ...ALL_STATIONS.mt];
+      allStations.forEach(st => {
+        const opt = document.createElement('option');
+        opt.value = st;
+        opt.textContent = `${st} (${getRegionForStation(st).toUpperCase()})`;
+        scanStationSelect.appendChild(opt);
+      });
+    }
+    populateScanStations();
+
+    scanArea.addEventListener('click', () => {
+      // Use camera input or file picker
+      cameraInput.click();
+    });
+
+    cameraInput.addEventListener('change', handleImageSelected);
+    fileInput.addEventListener('change', handleImageSelected);
+
+    async function handleImageSelected(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        scanPreview.src = e.target.result;
+        scanPreview.style.display = 'block';
+        scanConfirmForm.style.display = 'none';
+        scanResultContainer.innerHTML = '';
+
+        await runOcr(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function runOcr(imageSource) {
+      ocrProgressContainer.style.display = 'block';
+      ocrProgressBar.style.width = '10%';
+      ocrStatus.textContent = 'Đang khởi động nhận dạng chữ...';
+
+      try {
+        if (typeof Tesseract === 'undefined') {
+          throw new Error('Thư viện Tesseract.js chưa tải được từ CDN');
+        }
+
+        const worker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              const progress = Math.round((m.progress || 0) * 100);
+              ocrProgressBar.style.width = `${progress}%`;
+              ocrStatus.textContent = `Đang đọc số vé... (${progress}%)`;
+            } else if (m.status) {
+              ocrStatus.textContent = `Tesseract: ${m.status}...`;
+            }
+          }
+        });
+
+        // Set whitelist to optimize lottery text recognition
+        await worker.setParameters({
+          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/-.:, '
+        });
+
+        const ret = await worker.recognize(imageSource);
+        await worker.terminate();
+
+        ocrProgressBar.style.width = '100%';
+        ocrStatus.textContent = 'Nhận dạng hoàn tất! Vui lòng kiểm tra lại.';
+
+        // Parse extracted OCR text and word bounding boxes
+        const parsed = parseTicketText(ret.data);
+
+        // Fill form for user verification
+        scanTicketNumber.value = parsed.number || '';
+        scanStationSelect.value = parsed.station || 'Hồ Chí Minh';
+        scanDateInput.value = parsed.date || new Date().toISOString().split('T')[0];
+
+        // Always show confirmation form (prompt requirement)
+        scanConfirmForm.style.display = 'block';
+        scanConfirmForm.scrollIntoView({ behavior: 'smooth' });
+
+      } catch (err) {
+        console.error('OCR Error:', err);
+        ocrStatus.textContent = 'Lỗi nhận dạng ảnh. Bạn vẫn có thể nhập tay thông tin bên dưới.';
+        scanConfirmForm.style.display = 'block';
+      }
+    }
+
+    btnScanCheck.addEventListener('click', () => {
+      const ticket = scanTicketNumber.value.trim();
+      const station = scanStationSelect.value;
+      const date = scanDateInput.value;
+      const region = getRegionForStation(station);
+
+      if (!/^\d{6}$/.test(ticket)) {
+        showToast('Vui lòng kiểm tra lại: Dãy số vé phải đủ 6 chữ số!');
+        scanTicketNumber.focus();
+        return;
+      }
+
+      performCheckTicket(ticket, date, station, region, scanResultContainer);
+    });
+
+    btnScanSaveWallet.addEventListener('click', () => {
+      const ticket = scanTicketNumber.value.trim();
+      const station = scanStationSelect.value;
+      const date = scanDateInput.value;
+      const region = getRegionForStation(station);
+
+      if (!/^\d{6}$/.test(ticket)) {
+        showToast('Vui lòng kiểm tra lại: Dãy số vé phải đủ 6 chữ số!');
+        return;
+      }
+
+      window.saveTicketToWallet(ticket, station, date, region);
+    });
+
+    // ==========================================
+    // TAB 3: VÍ VÉ (TICKET WALLET)
+    // ==========================================
+    const walletTicketList = document.getElementById('walletTicketList');
+    const walletSummary = document.getElementById('walletSummary');
+    const btnManualAddWallet = document.getElementById('btnManualAddWallet');
+
+    btnManualAddWallet.addEventListener('click', () => {
+      const so = prompt('Nhập dãy 6 số vé:');
+      if (!so || !/^\d{6}$/.test(so.trim())) {
+        if (so) showToast('Số vé phải có đúng 6 chữ số!');
+        return;
+      }
+      const st = prompt('Nhập tên đài (ví dụ: Bình Phước, Hồ Chí Minh, Đà Nẵng):', 'Hồ Chí Minh');
+      if (!st) return;
+      const ng = prompt('Nhập ngày mở thưởng (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+      if (!ng) return;
+
+      const reg = getRegionForStation(st.trim());
+      window.saveTicketToWallet(so.trim(), st.trim(), ng.trim(), reg);
+    });
+
+    function renderWalletTab() {
+      const tickets = getStoredTickets();
+      if (!walletTicketList) return;
+
+      if (tickets.length === 0) {
+        walletSummary.textContent = 'Chưa có vé nào trong ví';
+        walletTicketList.innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">🎟️</div>
+            <div style="font-weight: 700; margin-bottom: 6px; color: #fff;">Ví của bạn đang trống</div>
+            <div style="font-size: 0.8rem;">Dò vé hoặc quét ảnh vé để lưu vào đây nhé!</div>
+          </div>
+        `;
+        return;
+      }
+
+      let totalWon = 0;
+      let wonCount = 0;
+
+      walletTicketList.innerHTML = '';
+      tickets.forEach(ticket => {
+        const dayData = LOTTERY_DATA[ticket.ngay];
+        const stationResult = dayData?.[ticket.vung]?.[ticket.dai];
+
+        let statusText = 'Chờ kết quả';
+        let statusClass = 'waiting';
+        let isWon = false;
+        let wonAmount = 0;
+
+        if (stationResult) {
+          const matched = matchTicket(ticket.so, stationResult);
+          if (matched.length > 0) {
+            wonAmount = matched.reduce((s, p) => s + p.amount, 0);
+            totalWon += wonAmount;
+            wonCount++;
+            isWon = true;
+            statusText = `Trúng ${formatCurrency(wonAmount)}`;
+            statusClass = 'won';
+          } else {
+            statusText = 'Chưa trúng';
+            statusClass = 'lost';
+          }
+        }
+
+        const item = document.createElement('div');
+        item.className = `ticket-item ${isWon ? 'is-won' : ''}`;
+        item.innerHTML = `
+          <div>
+            <div class="ticket-item-num">${ticket.so}</div>
+            <div class="ticket-item-meta">
+              <strong>${ticket.dai}</strong> · Ngày: ${ticket.ngay}
+            </div>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <div class="status-badge ${statusClass}">${statusText}</div>
+            <button class="ticket-del-btn" title="Xóa vé" onclick="window.deleteTicket('${ticket.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/></svg>
+            </button>
+          </div>
+        `;
+        walletTicketList.appendChild(item);
+      });
+
+      walletSummary.innerHTML = `Tổng ${tickets.length} vé · Trúng <strong>${wonCount} vé (${formatCurrency(totalWon)})</strong>`;
+    }
+
+    window.deleteTicket = (id) => {
+      if (!confirm('Bạn có chắc muốn xóa vé này khỏi ví?')) return;
+      let tickets = getStoredTickets();
+      tickets = tickets.filter(t => t.id !== id);
+      saveStoredTickets(tickets);
+      renderWalletTab();
+    };
+
+    // ==========================================
+    // TAB 4: KẾT QUẢ (FULL RESULTS & LÔ TÔ)
+    // ==========================================
+    const resDateSelect = document.getElementById('resDate');
+    const resStationSelect = document.getElementById('resStation');
+    const resultsTableContainer = document.getElementById('resultsTableContainer');
+    const lottoContainer = document.getElementById('lottoContainer');
+
+    function initResultsTab() {
+      const dates = Object.keys(LOTTERY_DATA);
+      resDateSelect.innerHTML = '';
+      dates.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = `Ngày ${d}`;
+        resDateSelect.appendChild(opt);
+      });
+
+      updateResultsStations();
+    }
+
+    function updateResultsStations() {
+      const selectedDate = resDateSelect.value;
+      const dayData = LOTTERY_DATA[selectedDate]?.[currentResRegion] || {};
+      const stations = Object.keys(dayData);
+
+      resStationSelect.innerHTML = '';
+      if (stations.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'Không có đài cho ngày này';
+        resStationSelect.appendChild(opt);
+      } else {
+        stations.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          resStationSelect.appendChild(opt);
+        });
+      }
+
+      renderFullResults();
+    }
+
+    document.getElementById('btnResMN').addEventListener('click', () => {
+      currentResRegion = 'mn';
+      document.getElementById('btnResMN').classList.add('active');
+      document.getElementById('btnResMT').classList.remove('active');
+      updateResultsStations();
+    });
+
+    document.getElementById('btnResMT').addEventListener('click', () => {
+      currentResRegion = 'mt';
+      document.getElementById('btnResMT').classList.add('active');
+      document.getElementById('btnResMN').classList.remove('active');
+      updateResultsStations();
+    });
+
+    resDateSelect.addEventListener('change', updateResultsStations);
+    resStationSelect.addEventListener('change', renderFullResults);
+
+    function renderFullResults() {
+      const selectedDate = resDateSelect.value;
+      const selectedStation = resStationSelect.value;
+      const stationData = LOTTERY_DATA[selectedDate]?.[currentResRegion]?.[selectedStation];
+
+      if (!stationData) {
+        resultsTableContainer.innerHTML = `
+          <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+            Chưa có bảng kết quả cho đài này
+          </div>
+        `;
+        lottoContainer.innerHTML = '';
+        return;
+      }
+
+      // Render standard prize table (ĐB down to G8)
+      resultsTableContainer.innerHTML = `
+        <table class="results-table">
+          <tr class="db-row">
+            <th>Đặc Biệt</th>
+            <td>${stationData.db || '—'}</td>
+          </tr>
+          <tr class="g1-row">
+            <th>Giải Nhất</th>
+            <td>${stationData.g1 || '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Nhì</th>
+            <td>${stationData.g2 || '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Ba</th>
+            <td>${stationData.g3 ? stationData.g3.join('  ·  ') : '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Tư</th>
+            <td>${stationData.g4 ? stationData.g4.join('  ·  ') : '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Năm</th>
+            <td>${stationData.g5 || '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Sáu</th>
+            <td>${stationData.g6 ? stationData.g6.join('  ·  ') : '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Bảy</th>
+            <td>${stationData.g7 || '—'}</td>
+          </tr>
+          <tr>
+            <th>Giải Tám</th>
+            <td><strong style="color: var(--primary); font-size: 1.15rem;">${stationData.g8 || '—'}</strong></td>
+          </tr>
+        </table>
+      `;
+
+      // Render Lô Tô Đầu / Đuôi
+      const lotto = calculateLotto(stationData);
+      let dauRows = '';
+      let duoiRows = '';
+
+      for (let i = 0; i <= 9; i++) {
+        dauRows += `
+          <div class="lotto-row">
+            <span class="lotto-digit">${i}</span>
+            <span class="lotto-values">${lotto.dau[i].join(', ') || '—'}</span>
+          </div>
+        `;
+        duoiRows += `
+          <div class="lotto-row">
+            <span class="lotto-digit">${i}</span>
+            <span class="lotto-values">${lotto.duoi[i].join(', ') || '—'}</span>
+          </div>
+        `;
+      }
+
+      lottoContainer.innerHTML = `
+        <div style="margin-top: 20px; font-weight: 700; color: #fff; font-size: 0.95rem;">
+          🎲 Bảng Lô Tô Đầu / Đuôi
+        </div>
+        <div class="lotto-grid">
+          <div class="lotto-col">
+            <div class="lotto-header">ĐẦU</div>
+            ${dauRows}
+          </div>
+          <div class="lotto-col">
+            <div class="lotto-header">ĐUÔI</div>
+            ${duoiRows}
+          </div>
+        </div>
+      `;
+    }
+
+    // Start App by loading lottery results
+    loadResultsData();
+  </script>
+</body>
+</html>
