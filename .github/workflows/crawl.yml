@@ -36,3 +36,4 @@ jobs:
           else
             echo "No changes in data/results.json"
           fi
+

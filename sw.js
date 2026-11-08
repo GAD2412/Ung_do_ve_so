@@ -57,7 +57,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Strategy 2: Cache Tesseract.js scripts and models on fetch
-  if (url.hostname.includes('jsdelivr.net') || url.hostname.includes('github.io') || url.pathname.includes('.wasm') || url.pathname.includes('.traineddata')) {
+  if (url.hostname.includes('jsdelivr.net') || url.pathname.includes('.wasm') || url.pathname.includes('.traineddata')) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -97,3 +97,4 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
