@@ -24,6 +24,26 @@ Ung_do_ve_so/
 └── .github/workflows/crawl.yml # GitHub Actions cron tự động cào kết quả mỗi 15 phút (16:45–18:45 VN)
 ```
 
+## 🔄 Cơ chế cập nhật dữ liệu tự động & tức thì
+1. **GitHub Actions Cron (Chạy ngầm tự động):**
+   - Chạy định kỳ **mỗi 5 phút** trong khung giờ cao điểm quay số từ **16:15 đến 18:55 (giờ VN)**.
+   - Chạy bổ sung mỗi 15 phút từ 19:00 đến 19:45 và chạy dự phòng lúc 21:00 & 23:00.
+2. **Nút Làm Mới 🔄 trực tiếp trên App:**
+   - Người dùng bấm nút 🔄 trên góc phải màn hình để tải ngay dữ liệu mới nhất (vượt qua cache Service Worker).
+3. **Nút "⚡ Ép cào kết quả ngay" trên điện thoại:**
+   - Khi bạn muốn dò vé ngay sau giờ quay mà GitHub Cron chưa kịp kích hoạt, bấm **⚡ Ép cào kết quả ngay** trong ứng dụng (hoặc ngay tại ô báo "Chưa có kết quả").
+   - Nhập một lần GitHub Personal Access Token (chỉ quyền `workflow`), app sẽ gọi trực tiếp GitHub API để cào kết quả từ `xskt.com.vn` chỉ sau 10 giây!
+4. **Tùy chọn Webhook chuẩn từng giây (cron-job.org):**
+   - Đăng ký miễn phí tại [cron-job.org](https://cron-job.org).
+   - Tạo URL Cron: `https://api.github.com/repos/GAD2412/Ung_do_ve_so/actions/workflows/crawl.yml/dispatches`
+   - Phương thức: `POST`
+   - Headers:
+     - `Authorization`: `Bearer <GITHUB_TOKEN>`
+     - `Accept`: `application/vnd.github+json`
+     - `User-Agent`: `cron-job-org`
+   - Request body: `{"ref": "main"}`
+   - Lịch chạy: Đặt lúc **16:40** và **17:40** hàng ngày.
+
 ## 🧪 Chạy kiểm thử
 1. **Chạy Unit Test:**
    ```bash

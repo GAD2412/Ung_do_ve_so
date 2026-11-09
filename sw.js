@@ -3,7 +3,7 @@
  * Implements offline support, Network-First for results.json, and Cache-First for shell assets.
  */
 
-const CACHE_NAME = 'so-xo-bo-tui-v1';
+const CACHE_NAME = 'so-xo-bo-tui-v2';
 
 const STATIC_ASSETS = [
   './',

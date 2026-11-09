@@ -2,9 +2,13 @@ name: Crawl Lottery Results
 
 on:
   schedule:
-    # 16:45 - 18:45 VN time (= 09:45 - 11:45 UTC) every 15 minutes
-    - cron: '45 9 * * *'
-    - cron: '0,15,30,45 10,11 * * *'
+    # 16:15 - 18:55 VN time (= 09:15 - 11:55 UTC) every 5 minutes during drawing hours
+    - cron: '15,20,25,30,35,40,45,50,55 9 * * *'
+    - cron: '*/5 10,11 * * *'
+    # 19:00 - 19:45 VN time (= 12:00 - 12:45 UTC) every 15 minutes for late updates
+    - cron: '0,15,30,45 12 * * *'
+    # Fallback runs at 21:00 and 23:00 VN time (= 14:00 and 16:00 UTC)
+    - cron: '0 14,16 * * *'
   workflow_dispatch:
 
 permissions:
@@ -36,4 +40,3 @@ jobs:
           else
             echo "No changes in data/results.json"
           fi
-

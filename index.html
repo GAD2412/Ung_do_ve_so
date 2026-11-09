@@ -104,6 +104,35 @@
       font-size: 0.9rem;
       font-weight: bold;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .header-action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .header-action-btn:hover, .header-info-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+
+    .header-action-btn.spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     /* Main Container */
@@ -735,10 +764,19 @@
       <img src="icon.svg" alt="Sổ Xố Bỏ Túi">
       <div>
         <h1>Sổ Xố Bỏ Túi</h1>
-        <div class="brand-sub">Dò vé số cá nhân · Miễn phí</div>
+        <div class="brand-sub">
+          Dò vé số cá nhân · <span id="headerLatestDate" style="color: #6ee7b7;">Đang tải...</span>
+        </div>
       </div>
     </div>
-    <button class="header-info-btn" id="openInfoBtn" title="Thông tin ứng dụng">?</button>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button class="header-action-btn" id="btnRefreshResults" title="Làm mới kết quả từ máy chủ">
+        <svg id="refreshIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+      </button>
+      <button class="header-info-btn" id="openInfoBtn" title="Cài đặt & Thông tin">⚙</button>
+    </div>
   </header>
 
   <!-- Main Content Areas -->
@@ -902,20 +940,66 @@
     </button>
   </nav>
 
-  <!-- Info Modal -->
+  <!-- Info / Settings Modal -->
   <div class="modal-overlay" id="infoModal">
     <div class="modal-content">
       <div class="modal-header">
-        <div style="font-weight: 800; font-size: 1.1rem; color: #fff;">Về Sổ Xố Bỏ Túi</div>
+        <div style="font-weight: 800; font-size: 1.1rem; color: #fff;">⚙ Cài đặt & Cập nhật dữ liệu</div>
         <button class="modal-close" id="closeInfoBtn">&times;</button>
       </div>
+
+      <!-- Sync / Force Crawl Card -->
+      <div style="background: #090e18; border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <div style="font-weight: 700; color: var(--gold); font-size: 0.92rem; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <span>⚡ Trạng thái kết quả</span>
+          <span id="modalTodayStatus" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.2); color: #10b981;">Đang kiểm tra...</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Dữ liệu mới nhất hiện có: <strong id="modalLatestDateText" style="color: #fff;">--</strong>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+          <button class="btn btn-secondary" id="btnModalRefresh" style="padding: 10px; font-size: 0.85rem;">
+            🔄 Tải lại dữ liệu
+          </button>
+          <button class="btn btn-primary" id="btnTriggerAction" style="padding: 10px; font-size: 0.85rem;">
+            ⚡ Ép cào kết quả ngay
+          </button>
+        </div>
+
+        <!-- GitHub PAT Settings for 1-Click Trigger -->
+        <div style="border-top: 1px dashed var(--card-border); padding-top: 12px; font-size: 0.8rem;">
+          <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">
+            🔑 Cấu hình Token GitHub (để kích hoạt cào từ điện thoại):
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 8px;">
+            Nếu GitHub Actions cron bị trễ, bạn có thể lưu GitHub Personal Access Token (chỉ quyền <em>workflow</em>) để bấm 1 nút là cào ngay từ điện thoại. Token chỉ lưu trong máy bạn.
+          </p>
+          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+            <input type="password" id="inputGithubToken" class="form-input" placeholder="ghp_xxxxxxxxxxxx..." style="font-size: 0.8rem; padding: 8px 10px;">
+            <button class="btn btn-secondary" id="btnSaveGithubToken" style="width: auto; padding: 8px 14px; font-size: 0.8rem; white-space: nowrap;">
+              Lưu
+            </button>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem;">
+            <a href="https://github.com/settings/tokens/new?description=SoXoBoTui&scopes=workflow" target="_blank" rel="noopener" style="color: #60a5fa; text-decoration: underline;">
+              ↗ Tạo token trên GitHub
+            </a>
+            <a href="https://github.com/GAD2412/Ung_do_ve_so/actions/workflows/crawl.yml" target="_blank" rel="noopener" style="color: var(--gold); text-decoration: underline;">
+              ↗ Mở Actions chạy thủ công
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-bottom: 8px;">ℹ️ Giới thiệu & Phạm vi</div>
       <ul class="info-list">
         <li>✨ <strong>Mục đích:</strong> Dò vé số cá nhân nhanh, nhẹ, không quảng cáo, hoạt động offline.</li>
         <li>🎯 <strong>Phạm vi v1:</strong> Hỗ trợ đầy đủ 21 đài Miền Nam & 14 đài Miền Trung theo luật xổ số chuẩn Bộ Tài chính.</li>
         <li>📷 <strong>OCR quét vé:</strong> Sử dụng Tesseract nhận dạng trực tiếp trên trình duyệt, có form xác nhận sửa tay trước khi dò.</li>
         <li>💾 <strong>Quyền riêng tư:</strong> Toàn bộ vé lưu trữ trong máy của bạn (localStorage), không gửi vé lên bất kỳ máy chủ nào.</li>
-        <li>⚡ <strong>Cập nhật kết quả:</strong> Tự động cào kết quả từ nguồn RSS chính thống mỗi chiều (16:45–18:45 VN).</li>
-        <li>📌 <strong>Chưa hỗ trợ v1:</strong> Miền Bắc (cơ cấu 5 số + ký hiệu đặc biệt); Push notification nền; Camera realtime (dùng chụp ảnh gốc để chữ nét nhất).</li>
+        <li>⏰ <strong>Tự động cập nhật:</strong> GitHub Actions tự động cào mỗi 5 phút trong khung giờ quay thưởng (16:15–18:55 VN). Bạn cũng có thể dùng nút 🔄 hoặc ⚡ ở trên để ép cập nhật bất cứ lúc nào.</li>
+        <li>🌐 <strong>Tùy chọn cron-job.org:</strong> Bạn có thể dùng cron-job.org (miễn phí) gọi POST webhook tới GitHub lúc 16:40 và 17:40 hàng ngày để đảm bảo 100% không phụ thuộc cron của GitHub.</li>
       </ul>
     </div>
   </div>
@@ -967,6 +1051,8 @@
 
     // Helper: Local Storage for Tickets
     const STORAGE_KEY = 'so_xo_bo_tui_tickets';
+    const GH_TOKEN_KEY = 'so_xo_gh_token';
+
     function getStoredTickets() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -985,10 +1071,11 @@
       }
     }
 
-    // Fetch Results Data (Network-First via SW)
-    async function loadResultsData() {
+    // Fetch Results Data (Network-First via SW, cache-busting when manual)
+    async function loadResultsData(isManual = false) {
       try {
-        const resp = await fetch('./data/results.json');
+        const url = './data/results.json' + (isManual ? `?t=${Date.now()}` : '');
+        const resp = await fetch(url, isManual ? { cache: 'no-store' } : {});
         if (resp.ok) {
           LOTTERY_DATA = await resp.json();
           window.LOTTERY_DATA = LOTTERY_DATA;
@@ -997,6 +1084,43 @@
         console.warn('Error fetching results.json, relying on cache/offline data:', e);
       }
       onDataLoaded();
+      updateSyncStatusUI();
+
+      if (isManual) {
+        const dates = Object.keys(LOTTERY_DATA);
+        const latest = dates.length > 0 ? dates[0] : 'Chưa có';
+        showToast(`Đã làm mới dữ liệu! Mới nhất: ${latest}`);
+      }
+    }
+
+    function updateSyncStatusUI() {
+      const dates = Object.keys(LOTTERY_DATA);
+      const latest = dates.length > 0 ? dates[0] : '--';
+      
+      const headerDateEl = document.getElementById('headerLatestDate');
+      if (headerDateEl) {
+        headerDateEl.textContent = `KQ: ${latest}`;
+      }
+
+      const modalLatestDateText = document.getElementById('modalLatestDateText');
+      if (modalLatestDateText) {
+        modalLatestDateText.textContent = latest;
+      }
+
+      // Check if today has results
+      const todayStr = new Date().toISOString().split('T')[0];
+      const modalTodayStatus = document.getElementById('modalTodayStatus');
+      if (modalTodayStatus) {
+        if (LOTTERY_DATA[todayStr]) {
+          modalTodayStatus.textContent = `Đã có KQ hôm nay (${todayStr})`;
+          modalTodayStatus.style.background = 'rgba(16, 185, 129, 0.2)';
+          modalTodayStatus.style.color = '#10b981';
+        } else {
+          modalTodayStatus.textContent = `Chưa có KQ hôm nay (${todayStr})`;
+          modalTodayStatus.style.background = 'rgba(245, 158, 11, 0.2)';
+          modalTodayStatus.style.color = '#f59e0b';
+        }
+      }
     }
 
     function onDataLoaded() {
@@ -1004,6 +1128,100 @@
       initResultsTab();
       renderWalletTab();
     }
+
+    // Header Refresh and GitHub Actions Trigger Logic
+    const btnRefresh = document.getElementById('btnRefreshResults');
+    const btnModalRefresh = document.getElementById('btnModalRefresh');
+    
+    async function handleRefreshClick() {
+      if (btnRefresh) btnRefresh.classList.add('spinning');
+      await loadResultsData(true);
+      setTimeout(() => {
+        if (btnRefresh) btnRefresh.classList.remove('spinning');
+      }, 500);
+    }
+
+    if (btnRefresh) btnRefresh.addEventListener('click', handleRefreshClick);
+    if (btnModalRefresh) btnModalRefresh.addEventListener('click', handleRefreshClick);
+
+    const btnTriggerAction = document.getElementById('btnTriggerAction');
+    const inputGithubToken = document.getElementById('inputGithubToken');
+    const btnSaveGithubToken = document.getElementById('btnSaveGithubToken');
+
+    if (inputGithubToken) {
+      inputGithubToken.value = localStorage.getItem(GH_TOKEN_KEY) || '';
+    }
+
+    if (btnSaveGithubToken) {
+      btnSaveGithubToken.addEventListener('click', () => {
+        const val = inputGithubToken.value.trim();
+        if (val) {
+          localStorage.setItem(GH_TOKEN_KEY, val);
+          showToast('Đã lưu GitHub Token vào máy!');
+        } else {
+          localStorage.removeItem(GH_TOKEN_KEY);
+          showToast('Đã xóa GitHub Token');
+        }
+      });
+    }
+
+    async function triggerGitHubCrawl() {
+      const token = localStorage.getItem(GH_TOKEN_KEY);
+      if (!token) {
+        showToast('Vui lòng nhập GitHub Token bên dưới để kích hoạt!');
+        infoModal.style.display = 'flex';
+        if (inputGithubToken) inputGithubToken.focus();
+        return;
+      }
+
+      if (btnTriggerAction) {
+        btnTriggerAction.disabled = true;
+        btnTriggerAction.textContent = '⏳ Đang gửi lệnh...';
+      }
+
+      try {
+        const resp = await fetch('https://api.github.com/repos/GAD2412/Ung_do_ve_so/actions/workflows/crawl.yml/dispatches', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ ref: 'main' })
+        });
+
+        if (resp.status === 204) {
+          showToast('⚡ Đã kích hoạt GitHub Actions! Đang cào dữ liệu...');
+          let count = 12;
+          const interval = setInterval(() => {
+            if (btnTriggerAction) btnTriggerAction.textContent = `⏳ Đang cào... (${count}s)`;
+            count--;
+            if (count < 0) {
+              clearInterval(interval);
+              if (btnTriggerAction) {
+                btnTriggerAction.disabled = false;
+                btnTriggerAction.textContent = '⚡ Ép cào kết quả ngay';
+              }
+              loadResultsData(true);
+            }
+          }, 1000);
+        } else {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.message || `Lỗi HTTP ${resp.status}`);
+        }
+      } catch (err) {
+        console.error('Trigger error:', err);
+        showToast(`Lỗi kích hoạt: ${err.message}`);
+        if (btnTriggerAction) {
+          btnTriggerAction.disabled = false;
+          btnTriggerAction.textContent = '⚡ Ép cào kết quả ngay';
+        }
+      }
+    }
+
+    if (btnTriggerAction) {
+      btnTriggerAction.addEventListener('click', triggerGitHubCrawl);
+    }
+    window.triggerGitHubCrawl = triggerGitHubCrawl;
 
     // Tab Navigation
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -1128,9 +1346,14 @@
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
               Hệ thống chưa ghi nhận kết quả quay thưởng đài <strong>${station}</strong> ngày <strong>${date}</strong>.
             </p>
-            <button class="btn btn-secondary" onclick="window.saveTicketToWallet('${ticket}', '${station}', '${date}', '${region}')">
-              💾 Lưu vào ví để tự động dò khi có KQ
-            </button>
+            <div style="display: flex; gap: 8px; flex-direction: column;">
+              <button class="btn btn-primary" onclick="window.triggerGitHubCrawl()" style="font-size: 0.88rem; padding: 10px;">
+                ⚡ Cào kết quả ngay bây giờ
+              </button>
+              <button class="btn btn-secondary" onclick="window.saveTicketToWallet('${ticket}', '${station}', '${date}', '${region}')" style="font-size: 0.88rem; padding: 10px;">
+                💾 Lưu vào ví để tự động dò khi có KQ
+              </button>
+            </div>
           </div>
         `;
         return;
